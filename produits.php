@@ -16,7 +16,6 @@ $tri = (string) ($_GET['tri'] ?? 'nom');
 $prixMin = is_numeric($prixMinBrut) ? (float) $prixMinBrut : null;
 $prixMax = is_numeric($prixMaxBrut) ? (float) $prixMaxBrut : null;
 
-// Liste blanche : le tri vient de l'URL, il ne doit jamais entrer brut dans le SQL.
 $trisPossibles = [
     'nom' => 'p.nom ASC',
     'prix_asc' => 'p.prix ASC',

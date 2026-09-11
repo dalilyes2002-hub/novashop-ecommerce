@@ -11,7 +11,6 @@ requireLogin();
 $userId = (int) $_SESSION['user_id'];
 $orderId = (int) ($_GET['id'] ?? 0);
 
-// Le filtre user_id empêche de lire la commande de quelqu'un d'autre en changeant l'id dans l'URL.
 $stmt = $pdo->prepare(
     'SELECT id, total, adresse_livraison, mode_paiement, statut, created_at
      FROM orders
@@ -34,8 +33,6 @@ if (!$commande) {
     exit;
 }
 
-// Le nom du produit est repris de products, mais le prix vient d'order_items :
-// c'est le prix au moment de l'achat, même si le catalogue a changé depuis.
 $stmt = $pdo->prepare(
     'SELECT oi.quantite, oi.prix_unitaire, oi.product_id, p.nom
      FROM order_items oi

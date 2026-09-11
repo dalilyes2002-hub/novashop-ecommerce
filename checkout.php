@@ -6,7 +6,6 @@ require_once __DIR__ . '/includes/functions.php';
 require_once __DIR__ . '/includes/catalogue.php';
 require_once __DIR__ . '/config/database.php';
 
-// Règle du sujet : on ne commande pas sans compte.
 requireLogin();
 
 $userId = (int) $_SESSION['user_id'];
@@ -26,7 +25,6 @@ if (!in_array($etape, $etapesValides, true)) {
 
 $erreurs = [];
 
-// Adresse par défaut : celle du profil.
 if (!isset($_SESSION['checkout_adresse'])) {
     $stmt = $pdo->prepare('SELECT adresse FROM users WHERE id = ? LIMIT 1');
     $stmt->execute([$userId]);
@@ -35,6 +33,8 @@ if (!isset($_SESSION['checkout_adresse'])) {
 $adresse = (string) $_SESSION['checkout_adresse'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verifierCsrf();
+
     $etapeSoumise = (string) ($_POST['etape'] ?? '');
 
     if ($etapeSoumise === 'adresse') {
@@ -61,13 +61,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $erreurs[] = 'Adresse de livraison manquante.';
             $etape = 'adresse';
         } else {
-            // Paiement simulé : aucun numéro de carte n'est demandé ni stocké.
             $statut = $modePaiement === 'carte' ? 'payee' : 'en_attente';
 
             try {
                 $pdo->beginTransaction();
 
-                // On relit les stocks dans la transaction et on verrouille les lignes.
                 $ids = array_column($lignes, 'id');
                 $placeholders = implode(',', array_fill(0, count($ids), '?'));
                 $stmt = $pdo->prepare(
@@ -90,7 +88,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if ((int) $produit['stock'] < $ligne['quantite']) {
                         throw new RuntimeException('Stock insuffisant pour « ' . $ligne['nom'] . ' ».');
                     }
-                    // Le prix de référence est celui de la base, pas celui de la session.
                     $totalCalcule += (float) $produit['prix'] * $ligne['quantite'];
                 }
                 $totalCalcule = round($totalCalcule, 2);
@@ -162,6 +159,7 @@ require __DIR__ . '/includes/header.php';
     <div class="auth-card auth-card-wide">
         <h2 class="h5 mb-3">1. Adresse de livraison</h2>
         <form method="post" action="<?= e(BASE_URL) ?>/checkout.php">
+            <?= champCsrf() ?>
             <input type="hidden" name="etape" value="adresse">
             <div class="mb-3">
                 <label class="form-label" for="adresse_livraison">Adresse complète</label>
@@ -212,6 +210,7 @@ require __DIR__ . '/includes/header.php';
     </div>
 
     <form method="post" action="<?= e(BASE_URL) ?>/checkout.php">
+        <?= champCsrf() ?>
         <input type="hidden" name="etape" value="recap">
         <div class="d-flex gap-2">
             <a class="btn btn-outline-secondary" href="<?= e(BASE_URL) ?>/checkout.php?etape=adresse">Modifier l’adresse</a>
@@ -225,6 +224,7 @@ require __DIR__ . '/includes/header.php';
         <p>Montant à payer : <strong><?= e(formatPrix($total)) ?></strong></p>
 
         <form method="post" action="<?= e(BASE_URL) ?>/checkout.php">
+            <?= champCsrf() ?>
             <input type="hidden" name="etape" value="paiement">
 
             <div class="form-check mb-2">

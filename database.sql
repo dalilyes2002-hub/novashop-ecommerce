@@ -1,12 +1,8 @@
--- NovaShop — base de données
--- Importer : mysql -u root < database.sql
--- (XAMPP : mot de passe root souvent vide)
 
 DROP DATABASE IF EXISTS ecommerce;
 CREATE DATABASE ecommerce CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE ecommerce;
 
--- 1) Utilisateurs
 CREATE TABLE users (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     prenom VARCHAR(100) NOT NULL,
@@ -19,14 +15,12 @@ CREATE TABLE users (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
--- 2) Catégories
 CREATE TABLE categories (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     nom VARCHAR(100) NOT NULL,
     description VARCHAR(255) DEFAULT NULL
 ) ENGINE=InnoDB;
 
--- 3) Produits (liés aux catégories)
 CREATE TABLE products (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     category_id INT UNSIGNED NOT NULL,
@@ -42,7 +36,6 @@ CREATE TABLE products (
         ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
--- 4) Commandes (liées aux utilisateurs)
 CREATE TABLE orders (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     user_id INT UNSIGNED NOT NULL,
@@ -58,7 +51,6 @@ CREATE TABLE orders (
         ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
--- 5) Lignes de commande (liées aux commandes et aux produits)
 CREATE TABLE order_items (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     order_id INT UNSIGNED NOT NULL,
@@ -74,11 +66,6 @@ CREATE TABLE order_items (
         ON UPDATE CASCADE
         ON DELETE RESTRICT
 ) ENGINE=InnoDB;
-
--- Données de test
--- Comptes README (mots de passe hashés avec password_hash PHP) :
--- Admin  : lyes.admin@novashop.test  / admin1234
--- Client : lyes.client@novashop.test / client1234
 
 INSERT INTO users (prenom, nom, email, telephone, adresse, mot_de_passe, role) VALUES
 (

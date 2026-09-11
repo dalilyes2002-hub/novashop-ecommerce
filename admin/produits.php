@@ -5,6 +5,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/bootstrap.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verifierCsrf();
+
     $action = (string) ($_POST['action'] ?? '');
     $id = (int) ($_POST['id'] ?? 0);
 
@@ -26,7 +28,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'supprimer') {
-        // Un produit déjà commandé doit rester en base pour l'historique des commandes.
         $stmt = $pdo->prepare('SELECT COUNT(*) FROM order_items WHERE product_id = ?');
         $stmt->execute([$id]);
         $nbLignes = (int) $stmt->fetchColumn();
@@ -148,6 +149,7 @@ require __DIR__ . '/nav.php';
                     <td><?= e(formatPrix($produit['prix'])) ?></td>
                     <td>
                         <form class="d-flex gap-2" method="post" action="<?= e(ADMIN_URL) ?>/produits.php">
+                            <?= champCsrf() ?>
                             <input type="hidden" name="action" value="stock">
                             <input type="hidden" name="id" value="<?= e((string) $produit['id']) ?>">
                             <input class="form-control form-control-sm cart-qty" type="number" name="stock" min="0"
@@ -170,6 +172,7 @@ require __DIR__ . '/nav.php';
                                 Modifier
                             </a>
                             <form method="post" action="<?= e(ADMIN_URL) ?>/produits.php">
+                                <?= champCsrf() ?>
                                 <input type="hidden" name="action" value="basculer_actif">
                                 <input type="hidden" name="id" value="<?= e((string) $produit['id']) ?>">
                                 <button class="btn btn-outline-primary btn-sm" type="submit">
@@ -178,6 +181,7 @@ require __DIR__ . '/nav.php';
                             </form>
                             <form method="post" action="<?= e(ADMIN_URL) ?>/produits.php"
                                   onsubmit="return confirm('Supprimer définitivement ce produit ?');">
+                                <?= champCsrf() ?>
                                 <input type="hidden" name="action" value="supprimer">
                                 <input type="hidden" name="id" value="<?= e((string) $produit['id']) ?>">
                                 <button class="btn btn-outline-danger btn-sm" type="submit">Supprimer</button>

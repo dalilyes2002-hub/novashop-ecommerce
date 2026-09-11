@@ -23,6 +23,8 @@ if (!$user) {
 $old = $user;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verifierCsrf();
+
     [$erreurs, $clean] = validerCompte($_POST, false, $pdo, $userId);
     $old = array_merge($user, $clean);
 
@@ -81,6 +83,7 @@ require __DIR__ . '/includes/header.php';
     <?php endif; ?>
 
     <form method="post" action="<?= e(BASE_URL) ?>/profil.php" novalidate>
+        <?= champCsrf() ?>
         <div class="row g-3">
             <div class="col-12 col-md-6">
                 <label class="form-label" for="prenom">Prénom</label>

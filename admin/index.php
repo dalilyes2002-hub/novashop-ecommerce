@@ -27,7 +27,6 @@ $compteurs['commandes'] = (int) $stmt->fetchColumn();
 $stmt = $pdo->query("SELECT COUNT(*) FROM orders WHERE statut = 'en_attente'");
 $compteurs['commandes_attente'] = (int) $stmt->fetchColumn();
 
-// Chiffre d'affaires : on ne compte pas les commandes annulées.
 $stmt = $pdo->query("SELECT COALESCE(SUM(total), 0) FROM orders WHERE statut != 'annulee'");
 $compteurs['ca'] = (float) $stmt->fetchColumn();
 

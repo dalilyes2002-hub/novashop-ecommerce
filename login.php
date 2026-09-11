@@ -5,28 +5,48 @@ declare(strict_types=1);
 require_once __DIR__ . '/includes/functions.php';
 require_once __DIR__ . '/config/database.php';
 
-if (isLoggedIn()) {
+$destinations = ['checkout' => '/checkout.php', 'panier' => '/panier.php'];
+$retour = (string) ($_POST['retour'] ?? $_GET['retour'] ?? '');
+$destination = $destinations[$retour] ?? null;
+
+function terminerConnexion(?string $destination): never
+{
+    if ($destination !== null && !isAdmin()) {
+        redirect($destination);
+    }
     redirectAfterLogin();
+}
+
+if (isLoggedIn()) {
+    terminerConnexion($destination);
 }
 
 $erreur = '';
 $email = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verifierCsrf();
+
     $email = trim($_POST['email'] ?? '');
-    $motDePasse = $_POST['mot_de_passe'] ?? '';
+    $motDePasse = (string) ($_POST['mot_de_passe'] ?? '');
 
-    $stmt = $pdo->prepare(
-        'SELECT id, prenom, nom, email, mot_de_passe, role FROM users WHERE email = ? LIMIT 1'
-    );
-    $stmt->execute([$email]);
-    $user = $stmt->fetch();
-
-    if (!$user || !password_verify($motDePasse, $user['mot_de_passe'])) {
-        $erreur = 'Email ou mot de passe incorrect.';
+    if ($email === '' || $motDePasse === '') {
+        $erreur = 'Renseigne ton email et ton mot de passe.';
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $erreur = 'L’adresse email n’est pas valide.';
     } else {
-        connecterUtilisateur($user);
-        redirectAfterLogin();
+        $stmt = $pdo->prepare(
+            'SELECT id, prenom, nom, email, mot_de_passe, role FROM users WHERE email = ? LIMIT 1'
+        );
+        $stmt->execute([$email]);
+        $user = $stmt->fetch();
+
+        if (!$user || !password_verify($motDePasse, $user['mot_de_passe'])) {
+            $erreur = 'Email ou mot de passe incorrect.';
+        } else {
+            connecterUtilisateur($user);
+            terminerConnexion($destination);
+        }
     }
 }
 
@@ -42,6 +62,8 @@ require __DIR__ . '/includes/header.php';
     <?php endif; ?>
 
     <form method="post" action="<?= e(BASE_URL) ?>/login.php" novalidate>
+        <?= champCsrf() ?>
+        <input type="hidden" name="retour" value="<?= e($retour) ?>">
         <div class="mb-3">
             <label class="form-label" for="email">Email</label>
             <input class="form-control" type="email" id="email" name="email" value="<?= e($email) ?>" required>

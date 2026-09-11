@@ -37,6 +37,8 @@ $stmt = $pdo->query('SELECT id, nom FROM categories ORDER BY nom');
 $categories = $stmt->fetchAll();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verifierCsrf();
+
     $produit['category_id'] = (int) ($_POST['category_id'] ?? 0);
     $produit['nom'] = trim((string) ($_POST['nom'] ?? ''));
     $produit['description'] = trim((string) ($_POST['description'] ?? ''));
@@ -96,7 +98,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $id,
             ]);
 
-            // L'ancien fichier ne sert plus une fois remplacé.
             if ($nouvelleImage !== null && $produit['image'] !== null && $produit['image'] !== $nouvelleImage) {
                 supprimerImageProduit((string) $produit['image']);
             }
@@ -122,7 +123,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect('/admin/produits.php');
     }
 
-    // En cas d'erreur, on garde l'image déjà envoyée pour ne pas la redemander.
     if ($nouvelleImage !== null) {
         $produit['image'] = $nouvelleImage;
     }
@@ -150,6 +150,7 @@ require __DIR__ . '/nav.php';
 <div class="auth-card auth-card-wide">
     <form method="post" action="<?= e(ADMIN_URL) ?>/produit-form.php<?= $id > 0 ? '?id=' . e((string) $id) : '' ?>"
           enctype="multipart/form-data">
+        <?= champCsrf() ?>
         <div class="row g-3">
             <div class="col-12 col-md-8">
                 <label class="form-label" for="nom">Nom</label>

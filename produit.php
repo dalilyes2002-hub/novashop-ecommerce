@@ -86,6 +86,7 @@ require __DIR__ . '/includes/header.php';
 
         <?php if ($disponible): ?>
             <form class="row g-2 align-items-end" method="post" action="<?= e(BASE_URL) ?>/panier.php">
+                <?= champCsrf() ?>
                 <input type="hidden" name="action" value="ajouter">
                 <input type="hidden" name="product_id" value="<?= e((string) $produit['id']) ?>">
                 <div class="col-auto">

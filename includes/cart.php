@@ -4,11 +4,6 @@ declare(strict_types=1);
 
 const PANIER_QUANTITE_MAX = 20;
 
-/**
- * Le panier est un simple tableau product_id => quantite, stocké en session.
- *
- * @return array<int, int>
- */
 function panier(): array
 {
     return $_SESSION['panier'] ?? [];
@@ -29,9 +24,6 @@ function panierNbArticles(): int
     return array_sum(panier());
 }
 
-/**
- * Renvoie le stock d'un produit vendable, ou null si le produit n'est pas au catalogue.
- */
 function stockDisponible(PDO $pdo, int $productId): ?int
 {
     $stmt = $pdo->prepare('SELECT stock FROM products WHERE id = ? AND actif = 1 LIMIT 1');
@@ -41,11 +33,6 @@ function stockDisponible(PDO $pdo, int $productId): ?int
     return $stock === false ? null : (int) $stock;
 }
 
-/**
- * Ajoute une quantité au panier, sans jamais dépasser le stock réel.
- *
- * @return string '' si tout va bien, sinon le message d'erreur
- */
 function panierAjouter(PDO $pdo, int $productId, int $quantite): string
 {
     if ($quantite < 1) {
@@ -119,12 +106,6 @@ function panierSupprimer(int $productId): void
     panierEnregistrer($panier);
 }
 
-/**
- * Charge les produits du panier depuis la base et calcule les sous-totaux.
- * Les produits retirés du catalogue sont automatiquement sortis du panier.
- *
- * @return list<array<string, mixed>>
- */
 function panierLignes(PDO $pdo): array
 {
     $panier = panier();
@@ -166,7 +147,6 @@ function panierLignes(PDO $pdo): array
         ];
     }
 
-    // Nettoyage : un produit supprimé ou désactivé ne doit pas rester en session.
     $disparus = array_diff($ids, $idsTrouves);
     if ($disparus !== []) {
         foreach ($disparus as $idDisparu) {

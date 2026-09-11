@@ -1,10 +1,6 @@
 <?php
-/**
- * Attend $produit : id, nom, prix, stock, actif, image, categorie_nom.
- */
 $image = imageProduit($produit);
 $disponible = estDisponible($produit);
-// Après l'ajout, on revient sur la page courante (panier.php par défaut).
 $retourPanier = '/' . basename((string) ($_SERVER['SCRIPT_NAME'] ?? 'panier.php'));
 ?>
 <article class="product-card">
@@ -29,6 +25,7 @@ $retourPanier = '/' . basename((string) ($_SERVER['SCRIPT_NAME'] ?? 'panier.php'
             <a class="btn btn-outline-success btn-sm" href="<?= e(urlProduit((int) $produit['id'])) ?>">Voir</a>
             <?php if ($disponible): ?>
                 <form method="post" action="<?= e(BASE_URL) ?>/panier.php">
+                    <?= champCsrf() ?>
                     <input type="hidden" name="action" value="ajouter">
                     <input type="hidden" name="product_id" value="<?= e((string) $produit['id']) ?>">
                     <input type="hidden" name="quantite" value="1">

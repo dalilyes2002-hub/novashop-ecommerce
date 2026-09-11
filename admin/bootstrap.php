@@ -6,7 +6,6 @@ require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/catalogue.php';
 require_once __DIR__ . '/../config/database.php';
 
-// Barrière unique : toute page qui inclut ce fichier est réservée aux admins.
 requireAdmin();
 
 const ADMIN_URL = BASE_URL . '/admin';
@@ -19,11 +18,6 @@ const UPLOAD_TYPES = [
     'image/webp' => 'webp',
 ];
 
-/**
- * Valide et déplace une image envoyée par l'admin.
- *
- * @return array{0: ?string, 1: string} [nom du fichier stocké, message d'erreur]
- */
 function enregistrerImageProduit(array $fichier): array
 {
     if (($fichier['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
@@ -38,7 +32,6 @@ function enregistrerImageProduit(array $fichier): array
         return [null, 'Image trop lourde (2 Mo maximum).'];
     }
 
-    // On lit le type réel du fichier, pas celui annoncé par le navigateur.
     $finfo = new finfo(FILEINFO_MIME_TYPE);
     $type = (string) $finfo->file($fichier['tmp_name']);
 
@@ -50,7 +43,6 @@ function enregistrerImageProduit(array $fichier): array
         return [null, 'Dossier d’images introuvable.'];
     }
 
-    // Nom généré : on ne réutilise jamais le nom fourni par l'utilisateur.
     $nomFichier = 'produit-' . bin2hex(random_bytes(8)) . '.' . UPLOAD_TYPES[$type];
 
     if (!move_uploaded_file($fichier['tmp_name'], UPLOAD_DIR . '/' . $nomFichier)) {
@@ -66,17 +58,91 @@ function supprimerImageProduit(?string $nomFichier): void
         return;
     }
 
-    // basename : on refuse tout chemin qui tenterait de sortir du dossier d'images.
     $chemin = UPLOAD_DIR . '/' . basename($nomFichier);
     if (is_file($chemin)) {
         unlink($chemin);
     }
 }
 
-/**
- * @return list<string>
- */
 function statutsCommande(): array
 {
     return ['en_attente', 'payee', 'expediee', 'livree', 'annulee'];
+}
+
+function changerStatutCommande(PDO $pdo, int $orderId, string $statut): string
+{
+    if (!in_array($statut, statutsCommande(), true)) {
+        return 'Statut inconnu.';
+    }
+
+    try {
+        $pdo->beginTransaction();
+
+        $stmt = $pdo->prepare('SELECT statut FROM orders WHERE id = ? FOR UPDATE');
+        $stmt->execute([$orderId]);
+        $ancienStatut = $stmt->fetchColumn();
+
+        if ($ancienStatut === false) {
+            throw new RuntimeException('Commande introuvable.');
+        }
+
+        if ($ancienStatut !== $statut) {
+            if ($statut === 'annulee') {
+                rendreStockCommande($pdo, $orderId);
+            } elseif ($ancienStatut === 'annulee') {
+                reprendreStockCommande($pdo, $orderId);
+            }
+        }
+
+        $stmt = $pdo->prepare('UPDATE orders SET statut = ? WHERE id = ?');
+        $stmt->execute([$statut, $orderId]);
+
+        $pdo->commit();
+    } catch (Throwable $exception) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+
+        return $exception instanceof RuntimeException
+            ? $exception->getMessage()
+            : 'Le statut n’a pas pu être modifié.';
+    }
+
+    return '';
+}
+
+function rendreStockCommande(PDO $pdo, int $orderId): void
+{
+    $stmt = $pdo->prepare(
+        'UPDATE products p
+         INNER JOIN order_items oi ON oi.product_id = p.id
+         SET p.stock = p.stock + oi.quantite
+         WHERE oi.order_id = ?'
+    );
+    $stmt->execute([$orderId]);
+}
+
+function reprendreStockCommande(PDO $pdo, int $orderId): void
+{
+    $stmt = $pdo->prepare(
+        'SELECT oi.product_id, oi.quantite, p.nom
+         FROM order_items oi
+         INNER JOIN products p ON p.id = oi.product_id
+         WHERE oi.order_id = ?
+         FOR UPDATE'
+    );
+    $stmt->execute([$orderId]);
+    $lignes = $stmt->fetchAll();
+
+    $maj = $pdo->prepare('UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?');
+
+    foreach ($lignes as $ligne) {
+        $maj->execute([$ligne['quantite'], $ligne['product_id'], $ligne['quantite']]);
+
+        if ($maj->rowCount() !== 1) {
+            throw new RuntimeException(
+                'Stock insuffisant pour « ' . $ligne['nom'] . ' » : impossible de réactiver cette commande.'
+            );
+        }
+    }
 }

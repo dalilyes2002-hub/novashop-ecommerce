@@ -19,6 +19,8 @@ $old = [
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verifierCsrf();
+
     [$erreurs, $clean] = validerCompte($_POST, true, $pdo);
     $old = $clean;
 
@@ -67,6 +69,7 @@ require __DIR__ . '/includes/header.php';
     <?php endif; ?>
 
     <form method="post" action="<?= e(BASE_URL) ?>/register.php" novalidate>
+        <?= champCsrf() ?>
         <div class="row g-3">
             <div class="col-12 col-md-6">
                 <label class="form-label" for="prenom">Prénom</label>

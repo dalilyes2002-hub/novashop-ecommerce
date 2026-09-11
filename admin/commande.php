@@ -5,15 +5,17 @@ declare(strict_types=1);
 require_once __DIR__ . '/bootstrap.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verifierCsrf();
+
     $orderId = (int) ($_POST['id'] ?? 0);
     $statut = (string) ($_POST['statut'] ?? '');
 
-    if (!in_array($statut, statutsCommande(), true)) {
-        setFlash('danger', 'Statut inconnu.');
-    } else {
-        $stmt = $pdo->prepare('UPDATE orders SET statut = ? WHERE id = ?');
-        $stmt->execute([$statut, $orderId]);
+    $message = changerStatutCommande($pdo, $orderId, $statut);
+
+    if ($message === '') {
         setFlash('success', 'Statut mis à jour.');
+    } else {
+        setFlash('danger', $message);
     }
 
     redirect('/admin/commande.php?id=' . $orderId);
@@ -21,7 +23,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $orderId = (int) ($_GET['id'] ?? 0);
 
-// Côté admin, pas de filtre user_id : l'admin voit toutes les commandes.
 $stmt = $pdo->prepare(
     'SELECT o.id, o.total, o.adresse_livraison, o.mode_paiement, o.statut, o.created_at,
             u.id AS client_id, u.prenom, u.nom, u.email, u.telephone
@@ -96,6 +97,7 @@ require __DIR__ . '/nav.php';
 <div class="info-card mb-4">
     <h2 class="h6">Statut</h2>
     <form class="row g-2 align-items-end" method="post" action="<?= e(ADMIN_URL) ?>/commande.php">
+        <?= champCsrf() ?>
         <input type="hidden" name="id" value="<?= e((string) $commande['id']) ?>">
         <div class="col-12 col-sm-6 col-md-4">
             <label class="form-label" for="statut">Changer le statut</label>

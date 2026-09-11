@@ -8,6 +8,8 @@ $erreurs = [];
 $edition = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verifierCsrf();
+
     $action = (string) ($_POST['action'] ?? '');
     $id = (int) ($_POST['id'] ?? 0);
     $nom = trim((string) ($_POST['nom'] ?? ''));
@@ -38,7 +40,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($action === 'supprimer') {
-            // La clé étrangère est en RESTRICT, mais on vérifie avant pour donner un vrai message.
             $stmt = $pdo->prepare('SELECT COUNT(*) FROM products WHERE category_id = ?');
             $stmt->execute([$id]);
             $nbProduits = (int) $stmt->fetchColumn();
@@ -48,12 +49,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $stmt = $pdo->prepare('DELETE FROM categories WHERE id = ?');
                 $stmt->execute([$id]);
-                setFlash('success', 'Catégorie supprimée.');
+
+                if ($stmt->rowCount() === 1) {
+                    setFlash('success', 'Catégorie supprimée.');
+                } else {
+                    setFlash('danger', 'Catégorie introuvable.');
+                }
             }
             redirect('/admin/categories.php');
         }
     } else {
-        // On garde les valeurs saisies pour réafficher le formulaire.
         $edition = ['id' => $id, 'nom' => $nom, 'description' => $description, 'action' => $action];
     }
 }
@@ -100,6 +105,7 @@ require __DIR__ . '/nav.php';
                 <?= $edition !== null && $edition['action'] === 'modifier' ? 'Modifier la catégorie' : 'Nouvelle catégorie' ?>
             </h2>
             <form method="post" action="<?= e(ADMIN_URL) ?>/categories.php">
+                <?= champCsrf() ?>
                 <input type="hidden" name="action" value="<?= e($edition !== null && $edition['action'] === 'modifier' ? 'modifier' : 'creer') ?>">
                 <?php if ($edition !== null && $edition['action'] === 'modifier'): ?>
                     <input type="hidden" name="id" value="<?= e((string) $edition['id']) ?>">
@@ -150,6 +156,7 @@ require __DIR__ . '/nav.php';
                                     </a>
                                     <form method="post" action="<?= e(ADMIN_URL) ?>/categories.php"
                                           onsubmit="return confirm('Supprimer cette catégorie ?');">
+                                        <?= champCsrf() ?>
                                         <input type="hidden" name="action" value="supprimer">
                                         <input type="hidden" name="id" value="<?= e((string) $categorie['id']) ?>">
                                         <button class="btn btn-outline-danger btn-sm" type="submit"

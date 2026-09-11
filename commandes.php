@@ -10,7 +10,6 @@ requireLogin();
 
 $userId = (int) $_SESSION['user_id'];
 
-// Filtre user_id : on ne voit que ses propres commandes.
 $stmt = $pdo->prepare(
     'SELECT o.id, o.total, o.statut, o.mode_paiement, o.created_at,
             COUNT(oi.id) AS nb_lignes

@@ -5,16 +5,18 @@ declare(strict_types=1);
 require_once __DIR__ . '/bootstrap.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verifierCsrf();
+
     $orderId = (int) ($_POST['id'] ?? 0);
     $statut = (string) ($_POST['statut'] ?? '');
     $retourFiltre = (string) ($_POST['filtre'] ?? '');
 
-    if (!in_array($statut, statutsCommande(), true)) {
-        setFlash('danger', 'Statut inconnu.');
-    } else {
-        $stmt = $pdo->prepare('UPDATE orders SET statut = ? WHERE id = ?');
-        $stmt->execute([$statut, $orderId]);
+    $message = changerStatutCommande($pdo, $orderId, $statut);
+
+    if ($message === '') {
         setFlash('success', 'Commande n°' . $orderId . ' : statut mis à jour.');
+    } else {
+        setFlash('danger', $message);
     }
 
     $suffixe = in_array($retourFiltre, statutsCommande(), true) ? '?statut=' . $retourFiltre : '';
@@ -105,6 +107,7 @@ require __DIR__ . '/nav.php';
                         <td><?= e(formatPrix($commande['total'])) ?></td>
                         <td>
                             <form class="d-flex gap-2" method="post" action="<?= e(ADMIN_URL) ?>/commandes.php">
+                                <?= champCsrf() ?>
                                 <input type="hidden" name="id" value="<?= e((string) $commande['id']) ?>">
                                 <input type="hidden" name="filtre" value="<?= e($filtreStatut) ?>">
                                 <select class="form-select form-select-sm" name="statut"

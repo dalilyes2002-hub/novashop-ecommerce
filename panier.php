@@ -6,14 +6,14 @@ require_once __DIR__ . '/includes/functions.php';
 require_once __DIR__ . '/includes/catalogue.php';
 require_once __DIR__ . '/config/database.php';
 
-// Toutes les actions passent en POST puis redirigent : pas de double ajout si on rafraîchit.
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verifierCsrf();
+
     $action = (string) ($_POST['action'] ?? '');
     $productId = (int) ($_POST['product_id'] ?? 0);
     $quantite = (int) ($_POST['quantite'] ?? 1);
     $retour = (string) ($_POST['retour'] ?? '/panier.php');
 
-    // On ne redirige que vers une page interne connue.
     $retoursAutorises = ['/panier.php', '/produits.php', '/index.php'];
     if (!in_array($retour, $retoursAutorises, true)) {
         $retour = '/panier.php';
@@ -84,6 +84,7 @@ require __DIR__ . '/includes/header.php';
                         <td><?= e(formatPrix($ligne['prix'])) ?></td>
                         <td>
                             <form class="d-flex gap-2" method="post" action="<?= e(BASE_URL) ?>/panier.php">
+                                <?= champCsrf() ?>
                                 <input type="hidden" name="action" value="modifier">
                                 <input type="hidden" name="product_id" value="<?= e((string) $ligne['id']) ?>">
                                 <input class="form-control form-control-sm cart-qty" type="number" name="quantite"
@@ -96,6 +97,7 @@ require __DIR__ . '/includes/header.php';
                         <td><?= e(formatPrix($ligne['sous_total'])) ?></td>
                         <td class="text-end">
                             <form method="post" action="<?= e(BASE_URL) ?>/panier.php">
+                                <?= champCsrf() ?>
                                 <input type="hidden" name="action" value="supprimer">
                                 <input type="hidden" name="product_id" value="<?= e((string) $ligne['id']) ?>">
                                 <button class="btn btn-outline-danger btn-sm" type="submit">Retirer</button>
@@ -115,6 +117,7 @@ require __DIR__ . '/includes/header.php';
 
     <div class="d-flex flex-wrap gap-2">
         <form method="post" action="<?= e(BASE_URL) ?>/panier.php">
+            <?= champCsrf() ?>
             <input type="hidden" name="action" value="vider">
             <button class="btn btn-outline-danger" type="submit">Vider le panier</button>
         </form>

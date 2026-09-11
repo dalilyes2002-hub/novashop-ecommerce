@@ -17,6 +17,28 @@ function e(?string $value): string
     return htmlspecialchars($value ?? '', ENT_QUOTES, 'UTF-8');
 }
 
+function jetonCsrf(): string
+{
+    if (empty($_SESSION['csrf'])) {
+        $_SESSION['csrf'] = bin2hex(random_bytes(32));
+    }
+
+    return $_SESSION['csrf'];
+}
+
+function champCsrf(): string
+{
+    return '<input type="hidden" name="csrf" value="' . e(jetonCsrf()) . '">';
+}
+
+function verifierCsrf(): void
+{
+    if (!hash_equals(jetonCsrf(), (string) ($_POST['csrf'] ?? ''))) {
+        http_response_code(403);
+        exit('Formulaire invalide ou expiré. Recharge la page et réessaie.');
+    }
+}
+
 function isLoggedIn(): bool
 {
     return isset($_SESSION['user_id']);
@@ -100,9 +122,6 @@ function emailExiste(PDO $pdo, string $email, ?int $saufId = null): bool
     return (bool) $stmt->fetch();
 }
 
-/**
- * @return array{0: list<string>, 1: array<string, string>}
- */
 function validerCompte(array $data, bool $motDePasseObligatoire, PDO $pdo, ?int $userId = null): array
 {
     $erreurs = [];
